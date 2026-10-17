@@ -5,21 +5,21 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 
+/**
+ * Document stored in the {@code pets} collection.
+ *
+ * <p>{@code createdAt} is stamped once when the document is first written and {@code updatedAt}
+ * on every write; see {@code repositories.mongo.MongoPetsRepository}.</p>
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Document(collection = "pets")
 public class Pets {
 
-    @Id
     private String id;
 
     @NotBlank
@@ -38,9 +38,7 @@ public class Pets {
     @Builder.Default
     private String adoptionStatus = "AVAILABLE";
 
-    @CreatedDate
     private Instant createdAt;
 
-    @LastModifiedDate
     private Instant updatedAt;
 }

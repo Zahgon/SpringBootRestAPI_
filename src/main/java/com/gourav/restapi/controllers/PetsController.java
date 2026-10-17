@@ -5,22 +5,23 @@ import com.gourav.restapi.controllers.payload.request.UpdatePetRequest;
 import com.gourav.restapi.controllers.payload.response.PagedResponse;
 import com.gourav.restapi.controllers.payload.response.PetResponse;
 import com.gourav.restapi.services.PetsService;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
-@RestController
-@RequestMapping("/pets")
+@Path("/pets")
+@Produces(MediaType.APPLICATION_JSON)
 public class PetsController {
 	private final PetsService petsService;
 
@@ -48,40 +49,47 @@ public class PetsController {
 	 *   GET /pets/?species=cat&amp;adoptionStatus=AVAILABLE
 	 * </pre>
 	 */
-	@GetMapping(value = "/")
-	@PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+	@GET
+	@Path("/")
+	@RolesAllowed({"ROLE_USER", "ROLE_MODERATOR", "ROLE_ADMIN"})
 	public PagedResponse<PetResponse> getAllPets(
-			@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "10") int size,
-			@RequestParam(defaultValue = "name") String sortBy,
-			@RequestParam(required = false) String species,
-			@RequestParam(required = false) String adoptionStatus) {
+			@QueryParam("page") @DefaultValue("0") int page,
+			@QueryParam("size") @DefaultValue("10") int size,
+			@QueryParam("sortBy") @DefaultValue("name") String sortBy,
+			@QueryParam("species") String species,
+			@QueryParam("adoptionStatus") String adoptionStatus) {
 		return petsService.getPets(page, size, sortBy, species, adoptionStatus);
 	}
 
-	@GetMapping(value = "/{id}")
-	@PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-	public PetResponse getPetById(@PathVariable("id") String id) {
+	@GET
+	@Path("/{id}")
+	@RolesAllowed({"ROLE_USER", "ROLE_MODERATOR", "ROLE_ADMIN"})
+	public PetResponse getPetById(@PathParam("id") String id) {
 		return petsService.getPetById(id);
 	}
 
-	@PutMapping(value = "/{id}")
-	@PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")
-	public PetResponse modifyPetById(@PathVariable("id") String id,
-									  @Valid @RequestBody UpdatePetRequest request) {
+	@PUT
+	@Path("/{id}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@RolesAllowed({"ROLE_MODERATOR", "ROLE_ADMIN"})
+	public PetResponse modifyPetById(@PathParam("id") String id,
+									  @Valid UpdatePetRequest request) {
 		return petsService.updatePet(id, request);
 	}
 
-	@PostMapping(value = "/")
-	@PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-	public ResponseEntity<PetResponse> createPet(@Valid @RequestBody CreatePetRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(petsService.createPet(request));
+	@POST
+	@Path("/")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@RolesAllowed({"ROLE_USER", "ROLE_MODERATOR", "ROLE_ADMIN"})
+	public Response createPet(@Valid CreatePetRequest request) {
+		return Response.status(Response.Status.CREATED).entity(petsService.createPet(request)).build();
 	}
 
-	@DeleteMapping(value = "/{id}")
-	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<Void> deletePet(@PathVariable String id) {
+	@DELETE
+	@Path("/{id}")
+	@RolesAllowed("ROLE_ADMIN")
+	public Response deletePet(@PathParam("id") String id) {
 		petsService.deletePet(id);
-		return ResponseEntity.noContent().build();
+		return Response.noContent().build();
 	}
 }

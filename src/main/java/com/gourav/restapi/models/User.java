@@ -5,19 +5,20 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Document stored in the {@code users} collection.
+ *
+ * <p>{@code roles} is persisted as an array of database references into the {@code roles}
+ * collection; see {@code repositories.mongo.MongoUserRepository}.</p>
+ */
 @Data
 @NoArgsConstructor
-@Document(collection = "users")
 public class User {
 
-    @Id
     private String id;
 
     @NotBlank
@@ -33,7 +34,6 @@ public class User {
     @Size(max = 120)
     private String password;
 
-    @DBRef
     private Set<Role> roles = new HashSet<>();
 
     public User(String username, String email, String password) {

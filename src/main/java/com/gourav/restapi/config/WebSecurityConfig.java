@@ -1,70 +1,49 @@
 package com.gourav.restapi.config;
 
-import com.gourav.restapi.config.jwt.AuthEntryPointJwt;
-import com.gourav.restapi.config.jwt.AuthTokenFilter;
-import com.gourav.restapi.config.services.UserDetailsServiceImpl;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import java.util.List;
 
-import static org.springframework.security.config.Customizer.withDefaults;
+/**
+ * The security rules of the application, expressed as a plain path matcher.
+ *
+ * <p>Under the source framework these rules lived in an {@code authorizeHttpRequests(...)} DSL.
+ * The list below is that permit list, in the same order; every other path requires an
+ * authenticated request.</p>
+ *
+ * <p>A trailing {@code /**} matches the prefix and anything below it; every other entry is an
+ * exact path.</p>
+ */
+public final class WebSecurityConfig {
 
-@Configuration
-@EnableMethodSecurity
-public class WebSecurityConfig {
-    @Bean
-    public AuthTokenFilter authenticationJwtTokenFilter() {
-        return new AuthTokenFilter();
+    private static final List<String> PERMIT_ALL = List.of(
+            "/api/auth/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**",
+            "/v3/api-docs.yaml",
+            "/actuator/health",
+            "/actuator/info");
+
+    private WebSecurityConfig() {
     }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
+    /**
+     * @param path request path, always starting with {@code /}
+     * @return {@code true} when the path is reachable without authentication
+     */
+    public static boolean isPublic(String path) {
+        for (String pattern : PERMIT_ALL) {
+            if (matches(pattern, path)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
-                                           AuthEntryPointJwt unauthorizedHandler,
-                                           UserDetailsServiceImpl userDetailsService,
-                                           PasswordEncoder passwordEncoder) throws Exception {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder);
-
-        http.cors(withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authProvider)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // Swagger UI + OpenAPI docs (no auth needed)
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/v3/api-docs.yaml"
-                        ).permitAll()
-                        // Actuator health check (no auth needed)
-                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .anyRequest().authenticated());
-
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-        return http.build();
+    private static boolean matches(String pattern, String path) {
+        if (pattern.endsWith("/**")) {
+            String prefix = pattern.substring(0, pattern.length() - 3);
+            return path.equals(prefix) || path.startsWith(prefix + "/");
+        }
+        return pattern.equals(path);
     }
 }

@@ -1,5 +1,6 @@
 package com.gourav.restapi.controllers.payload.response;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,8 +10,9 @@ import java.util.List;
 
 /**
  * Generic paginated response wrapper returned by list endpoints.
- * Includes the page content plus metadata for client-side navigation.
+ * Includes the page content plus metadata for client-side navigation; the key order is pinned.
  */
+@JsonPropertyOrder({"content", "page", "size", "totalElements", "totalPages", "last"})
 @Data
 @Builder
 @NoArgsConstructor

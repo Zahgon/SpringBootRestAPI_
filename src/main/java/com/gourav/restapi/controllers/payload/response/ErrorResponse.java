@@ -1,8 +1,14 @@
 package com.gourav.restapi.controllers.payload.response;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * The wire order of the error envelope, stated rather than left to field declaration order.
+ */
+@JsonPropertyOrder({"timestamp", "status", "error", "message", "path", "fieldErrors"})
 public class ErrorResponse {
     private final Instant timestamp;
     private final int status;

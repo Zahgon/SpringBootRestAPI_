@@ -1,6 +1,6 @@
 # Migration Guide
 
-## Migrating from Spring Boot 2 to Spring Boot 3.3.5
+## Migrating from the Java 8 / Gradle 2 layout to Jakarta EE 10
 
 This guide helps you upgrade from the old version to the modernized version.
 
@@ -58,8 +58,8 @@ db.pets.deleteMany({});
 Then restart the application with the `local` profile:
 
 ```bash
-export SPRING_PROFILES_ACTIVE=local
-./gradlew bootRun
+export APP_PROFILES_ACTIVE=local
+./gradlew build && java -jar build/libs/rest_tutorial-0.0.1-SNAPSHOT.jar
 ```
 
 #### 3. **Environment Variables Configuration**
@@ -67,14 +67,10 @@ export SPRING_PROFILES_ACTIVE=local
 **Before**: Configuration was stored in `application.properties`
 
 ```properties
-spring.data.mongodb.host=127.0.0.1
-spring.data.mongodb.port=27017
-spring.data.mongodb.username=
-spring.data.mongodb.password=
-spring.data.mongodb.database=rest_tutorial
+mongodb.uri=mongodb://127.0.0.1:27017/rest_tutorial
 server.port=8081
-springboot.app.jwtSecret=restTutorialSecretKey
-springboot.app.jwtExpirationMs=86400000
+app.jwtSecret=restTutorialSecretKey
+app.jwtExpirationMs=86400000
 ```
 
 **After**: Configuration is externalized via environment variables
@@ -104,7 +100,7 @@ export JWT_EXPIRATION_MS=86400000
 3. Source the file before running (or use a tool like `direnv`):
    ```bash
    source .env
-   ./gradlew bootRun
+   ./gradlew build && java -jar build/libs/rest_tutorial-0.0.1-SNAPSHOT.jar
    ```
 
 **⚠️ IMPORTANT: JWT Secret Security**
@@ -125,11 +121,11 @@ openssl rand -base64 32
 python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-#### 4. **Spring Security Changes**
+#### 4. **Security Changes**
 
-- `@EnableGlobalMethodSecurity` → `@EnableMethodSecurity`
-- `antMatchers()` → `requestMatchers()` in security rules
-- Deprecated `WebSecurityConfigurerAdapter` is no longer extended
+- Method authorization is expressed with `@RolesAllowed` on the resource methods
+- The publicly reachable paths are listed once in `WebSecurityConfig.PERMIT_ALL`
+- Authentication and the permit-list check run as pre-matching JAX-RS filters
 
 #### 5. **Servlet API Changes**
 
@@ -168,7 +164,7 @@ SERVER_PORT=8081
 MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/rest_tutorial?retryWrites=true&w=majority
 JWT_SECRET=<generate-a-strong-secret>
 JWT_EXPIRATION_MS=86400000
-SPRING_PROFILES_ACTIVE=prod
+APP_PROFILES_ACTIVE=prod
 ```
 
 ### Troubleshooting

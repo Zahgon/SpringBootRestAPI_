@@ -4,54 +4,37 @@ import com.gourav.restapi.controllers.payload.request.CreatePetRequest;
 import com.gourav.restapi.controllers.payload.request.UpdatePetRequest;
 import com.gourav.restapi.controllers.payload.response.PagedResponse;
 import com.gourav.restapi.controllers.payload.response.PetResponse;
+import com.gourav.restapi.exceptions.ApiStatusException;
 import com.gourav.restapi.models.Pets;
 import com.gourav.restapi.repositories.PetsRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.web.server.ResponseStatusException;
-
+import com.gourav.restapi.repositories.paging.Page;
+import com.gourav.restapi.repositories.paging.PageRequest;
+import com.gourav.restapi.repositories.paging.Pageable;
+import com.gourav.restapi.repositories.paging.Sort;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.List;
 
-@Service
+@ApplicationScoped
 public class PetsService {
 
     private final PetsRepository petsRepository;
 
+    @Inject
     public PetsService(PetsRepository petsRepository) {
         this.petsRepository = petsRepository;
     }
 
-    /**
-     * Returns a paginated, optionally filtered list of pets.
-     *
-     * @param page           page number (0-indexed)
-     * @param size           page size (max 100)
-     * @param sortBy         field to sort by (default: name)
-     * @param species        optional filter by species (case-insensitive, partial match)
-     * @param adoptionStatus optional filter by adoption status (e.g. AVAILABLE, ADOPTED)
-     */
-    public PagedResponse<PetResponse> getPets(int page, int size, String sortBy,
-                                              String species, String adoptionStatus) {
-        // Cap page size to prevent abuse
+    public PagedResponse<PetResponse> getPets(int page, int size, String sortBy, String species, String adoptionStatus) {
         size = Math.min(size, 100);
-
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
+
         Page<Pets> petsPage;
-
-        boolean hasSpecies = StringUtils.hasText(species);
-        boolean hasStatus  = StringUtils.hasText(adoptionStatus);
-
-        if (hasSpecies && hasStatus) {
-            petsPage = petsRepository.findBySpeciesContainingIgnoreCaseAndAdoptionStatus(
-                    species, adoptionStatus, pageable);
-        } else if (hasSpecies) {
+        if (hasText(species) && hasText(adoptionStatus)) {
+            petsPage = petsRepository.findBySpeciesContainingIgnoreCaseAndAdoptionStatus(species, adoptionStatus, pageable);
+        } else if (hasText(species)) {
             petsPage = petsRepository.findBySpeciesContainingIgnoreCase(species, pageable);
-        } else if (hasStatus) {
+        } else if (hasText(adoptionStatus)) {
             petsPage = petsRepository.findByAdoptionStatus(adoptionStatus, pageable);
         } else {
             petsPage = petsRepository.findAll(pageable);
@@ -111,7 +94,7 @@ public class PetsService {
 
     private Pets findPet(String id) {
         return petsRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found with id: " + id));
+                .orElseThrow(() -> new ApiStatusException(404, "Pet not found with id: " + id));
     }
 
     private PetResponse toResponse(Pets pet) {
@@ -126,5 +109,9 @@ public class PetsService {
                 .createdAt(pet.getCreatedAt())
                 .updatedAt(pet.getUpdatedAt())
                 .build();
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

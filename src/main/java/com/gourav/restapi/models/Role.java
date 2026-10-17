@@ -1,11 +1,10 @@
 package com.gourav.restapi.models;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
-@Document(collection = "roles")
+/**
+ * Document stored in the {@code roles} collection.
+ */
 public class Role {
-    @Id
+
     private String id;
 
     private ERole name;

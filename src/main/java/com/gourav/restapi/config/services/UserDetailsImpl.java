@@ -2,16 +2,20 @@ package com.gourav.restapi.config.services;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.gourav.restapi.models.User;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import com.gourav.restapi.security.GrantedAuthority;
+import com.gourav.restapi.security.SimpleGrantedAuthority;
+import com.gourav.restapi.security.UserDetails;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class UserDetailsImpl implements UserDetails {
+public class UserDetailsImpl implements UserDetails, Serializable {
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final String id;

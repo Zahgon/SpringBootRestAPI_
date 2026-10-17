@@ -1,7 +1,14 @@
 package com.gourav.restapi.controllers.payload.response;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import java.util.List;
 
+/**
+ * The wire order of the token response. {@code accessToken} and {@code tokenType} are read from
+ * getters with no matching field, and Jackson does not order such properties reliably on its own.
+ */
+@JsonPropertyOrder({"id", "username", "email", "roles", "accessToken", "tokenType"})
 public class JwtResponse {
     private String token;
     private String type = "Bearer";

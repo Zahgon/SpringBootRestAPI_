@@ -1,74 +1,102 @@
 package com.gourav.restapi.controllers;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gourav.restapi.config.jwt.JwtUtils;
-import com.gourav.restapi.config.services.UserDetailsServiceImpl;
+import com.gourav.restapi.config.JacksonConfig;
 import com.gourav.restapi.controllers.payload.request.CreatePetRequest;
+import com.gourav.restapi.controllers.payload.response.PagedResponse;
 import com.gourav.restapi.controllers.payload.response.PetResponse;
+import com.gourav.restapi.server.HttpServer;
 import com.gourav.restapi.services.PetsService;
+import com.gourav.restapi.support.RawHttp;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(PetsController.class)
-@AutoConfigureMockMvc(addFilters = false)
+/**
+ * Drives {@link PetsController} over HTTP with the service mocked out.
+ *
+ * <p>The pipeline is assembled without the authentication, authorisation and CORS filters, which is
+ * the same slice the previous test drove.</p>
+ */
 class PetsControllerTest {
 
-    @Autowired
-    private MockMvc mvc;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockBean
     private PetsService petsService;
+    private HttpServer server;
+    private int port;
 
-    @MockBean
-    private JwtUtils jwtUtils;
+    @BeforeEach
+    void startServer() throws Exception {
+        petsService = mock(PetsService.class);
+        ResourceConfig application = new ResourceConfig()
+                .register(new PetsController(petsService))
+                .register(JacksonConfig.class)
+                .register(GlobalExceptionHandler.ValidationExceptionMapper.class)
+                .register(GlobalExceptionHandler.ApiStatusExceptionMapper.class)
+                .register(GlobalExceptionHandler.RoleNotFoundExceptionMapper.class)
+                .register(GlobalExceptionHandler.CatchAllExceptionMapper.class);
+        application.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
+        application.property(ServerProperties.WADL_FEATURE_DISABLE, true);
 
-    @MockBean
-    private UserDetailsServiceImpl userDetailsService;
+        server = new HttpServer(0, application);
+        server.start();
+        port = server.getPort();
+    }
+
+    @AfterEach
+    void stopServer() throws Exception {
+        server.stop();
+    }
+
+    private JsonNode json(RawHttp.Response response) throws Exception {
+        return objectMapper.readTree(response.body());
+    }
 
     @Test
     void getAllPets() throws Exception {
-        given(petsService.getAllPets())
-                .willReturn(List.of(new PetResponse("pet-1", "Liam", "cat", "tabby")));
+        given(petsService.getPets(0, 10, "name", null, null))
+                .willReturn(PagedResponse.<PetResponse>builder()
+                        .content(List.of(PetResponse.builder().id("pet-1").name("Liam").species("cat").breed("tabby").build()))
+                        .page(0).size(10).totalElements(1).totalPages(1).last(true)
+                        .build());
 
-        mvc.perform(get("/pets/"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value("pet-1"))
-                .andExpect(jsonPath("$[0].name").value("Liam"))
-                .andExpect(jsonPath("$[0].breed").value("tabby"))
-                .andExpect(jsonPath("$[0].species").value("cat"));
+        RawHttp.Response response = RawHttp.get(port, "/pets/");
+
+        assertEquals(200, response.status());
+        JsonNode body = json(response);
+        assertEquals("pet-1", body.at("/content/0/id").asText());
+        assertEquals("Liam", body.at("/content/0/name").asText());
+        assertEquals("tabby", body.at("/content/0/breed").asText());
+        assertEquals("cat", body.at("/content/0/species").asText());
     }
 
     @Test
     void getPetById() throws Exception {
         given(petsService.getPetById("pet-1"))
-                .willReturn(new PetResponse("pet-1", "Liam", "cat", "tabby"));
+                .willReturn(PetResponse.builder().id("pet-1").name("Liam").species("cat").breed("tabby").build());
 
-        mvc.perform(get("/pets/pet-1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("pet-1"))
-                .andExpect(jsonPath("$.name").value("Liam"))
-                .andExpect(jsonPath("$.breed").value("tabby"))
-                .andExpect(jsonPath("$.species").value("cat"));
+        RawHttp.Response response = RawHttp.get(port, "/pets/pet-1");
+
+        assertEquals(200, response.status());
+        JsonNode body = json(response);
+        assertEquals("pet-1", body.get("id").asText());
+        assertEquals("Liam", body.get("name").asText());
+        assertEquals("tabby", body.get("breed").asText());
+        assertEquals("cat", body.get("species").asText());
     }
 
     @Test
@@ -79,14 +107,15 @@ class PetsControllerTest {
         request.setBreed("tabby");
 
         given(petsService.createPet(any(CreatePetRequest.class)))
-                .willReturn(new PetResponse("pet-1", "Liam", "cat", "tabby"));
+                .willReturn(PetResponse.builder().id("pet-1").name("Liam").species("cat").breed("tabby").build());
 
-        mvc.perform(post("/pets/")
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value("pet-1"))
-                .andExpect(jsonPath("$.name").value("Liam"));
+        RawHttp.Response response =
+                RawHttp.json(port, "POST", "/pets/", objectMapper.writeValueAsString(request));
+
+        assertEquals(201, response.status());
+        JsonNode body = json(response);
+        assertEquals("pet-1", body.get("id").asText());
+        assertEquals("Liam", body.get("name").asText());
     }
 
     @Test
@@ -97,32 +126,33 @@ class PetsControllerTest {
         request.setBreed("siamese");
 
         given(petsService.updatePet(eq("pet-1"), any()))
-                .willReturn(new PetResponse("pet-1", "Luna", "cat", "siamese"));
+                .willReturn(PetResponse.builder().id("pet-1").name("Luna").species("cat").breed("siamese").build());
 
-        mvc.perform(put("/pets/pet-1")
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Luna"))
-                .andExpect(jsonPath("$.breed").value("siamese"));
+        RawHttp.Response response =
+                RawHttp.json(port, "PUT", "/pets/pet-1", objectMapper.writeValueAsString(request));
+
+        assertEquals(200, response.status());
+        JsonNode body = json(response);
+        assertEquals("Luna", body.get("name").asText());
+        assertEquals("siamese", body.get("breed").asText());
     }
 
     @Test
-    void deletePetReturnsNoContent() throws Exception {
-        mvc.perform(delete("/pets/pet-1"))
-                .andExpect(status().isNoContent());
+    void deletePetReturnsNoContent() {
+        RawHttp.Response response = RawHttp.request(port, "DELETE", "/pets/pet-1", java.util.Map.of(), null);
 
+        assertEquals(204, response.status());
         verify(petsService).deletePet("pet-1");
     }
 
     @Test
     void createPetRejectsInvalidBody() throws Exception {
-        mvc.perform(post("/pets/")
-                        .contentType("application/json")
-                        .content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.name").exists())
-                .andExpect(jsonPath("$.fieldErrors.species").exists())
-                .andExpect(jsonPath("$.fieldErrors.breed").exists());
+        RawHttp.Response response = RawHttp.json(port, "POST", "/pets/", "{}");
+
+        assertEquals(400, response.status());
+        JsonNode fieldErrors = json(response).get("fieldErrors");
+        assertFalse(fieldErrors.path("name").isMissingNode());
+        assertFalse(fieldErrors.path("species").isMissingNode());
+        assertFalse(fieldErrors.path("breed").isMissingNode());
     }
 }

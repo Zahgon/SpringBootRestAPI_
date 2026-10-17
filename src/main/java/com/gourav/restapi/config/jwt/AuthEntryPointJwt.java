@@ -1,24 +1,27 @@
 package com.gourav.restapi.config.jwt;
 
+import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.stereotype.Component;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
+/**
+ * Builds the response returned whenever a request is rejected before, or instead of, reaching a
+ * resource method.
+ *
+ * <p>The source application delegated this to a servlet {@code sendError(401, ...)}, which — because
+ * the rejection already happened during an error dispatch — could not be rendered into a body and
+ * was committed as a bare {@code 401} with {@code Content-Length: 0}. That empty response is the
+ * single most common outcome of this API and is reproduced here verbatim.</p>
+ */
+public final class AuthEntryPointJwt {
 
-@Component
-public class AuthEntryPointJwt implements AuthenticationEntryPoint {
     private static final Logger logger = LoggerFactory.getLogger(AuthEntryPointJwt.class);
 
-    @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response,
-                         AuthenticationException authException) throws IOException, ServletException {
-        logger.error("Unauthorized error: {}", authException.getMessage());
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Error: Unauthorized");
+    private AuthEntryPointJwt() {
+    }
+
+    public static Response commence(String message) {
+        logger.error("Unauthorized error: {}", message);
+        return Response.status(Response.Status.UNAUTHORIZED).build();
     }
 }

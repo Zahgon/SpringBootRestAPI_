@@ -1,4 +1,4 @@
-# [ RestAPI Template - Spring Boot + MongoDB](https://gouravrusiya30.github.io/SpringBootRestAPI/)
+# [ RestAPI Template - Jakarta EE + MongoDB](https://gouravrusiya30.github.io/SpringBootRestAPI/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/GouravRusiya30/SpringBootRestAPI/blob/master/LICENSE)
 [![Travis Build Status](https://travis-ci.org/GouravRusiya30/SpringBootRestAPI.svg?branch=master)](https://travis-ci.org/GouravRusiya30/SpringBootRestAPI)
 [![sonar](https://sonarcloud.io/api/project_badges/measure?project=GouravRusiya30_SpringBootRestAPI&metric=alert_status)](https://sonarcloud.io/dashboard?id=GouravRusiya30_SpringBootRestAPI)
@@ -15,11 +15,11 @@
 <img height="300px" src="https://github.com/GouravRusiya30/SpringBootRestAPI/blob/master/docs/spring.png">
 
 ## Desciption
-#### A ready-to-use Template for Rest API using spring-boot-microservices, MongoDB as Database, Integrated with codecov and sonarqube, deployable to cloud. This template can be plugged into any application to kickstart task easily without writing everything from scratch.
+#### A ready-to-use Template for Rest API using jakarta-ee-microservices, MongoDB as Database, Integrated with codecov and sonarqube, deployable to cloud. This template can be plugged into any application to kickstart task easily without writing everything from scratch.
 
 
 ## Task List Progress
-- [X] Rest controllers and models using SpringBoot
+- [X] Rest controllers and models using Jakarta EE
 - [X] MongoDB configuration
 - [X] TravisCI build
 - [X] SonarQube integration
@@ -89,7 +89,8 @@ db.roles.insertMany([
 After MongoDB is running and your environment variables are configured, start the API with Gradle:
 
 ```bash
-./gradlew bootRun
+./gradlew build
+java -jar build/libs/rest_tutorial-0.0.1-SNAPSHOT.jar
 ```
 
 The application uses `MONGODB_URI=mongodb://localhost:27017/rest_tutorial` by default for local Docker Compose development. To stop the MongoDB container when you are done, run:

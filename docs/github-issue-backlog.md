@@ -34,11 +34,11 @@ The README documents API testing mostly through screenshots. Interactive OpenAPI
 
 ### Proposed solution
 
-Add Springdoc OpenAPI support and document the auth and pet endpoints with summaries, request examples, and response examples.
+Add OpenAPI support and document the auth and pet endpoints with summaries, request examples, and response examples.
 
 ### Acceptance criteria
 
-- [ ] Add the Springdoc OpenAPI dependency.
+- [ ] Add the OpenAPI dependency.
 - [ ] Enable Swagger UI for local development.
 - [ ] Document `/api/auth/signup`, `/api/auth/login`, and `/api/auth/logout`.
 - [ ] Document all pet CRUD endpoints.
@@ -155,7 +155,7 @@ Introduce a token blacklist abstraction and provide a Redis-backed implementatio
 - [ ] Add a token blacklist service interface.
 - [ ] Move in-memory blacklist behavior behind that interface.
 - [ ] Add a Redis-backed implementation or document a clear extension point.
-- [ ] Configure implementation selection by Spring profile or property.
+- [ ] Configure implementation selection by active profile or property.
 - [ ] Add tests for token invalidation and expiration cleanup.
 - [ ] Update production deployment documentation.
 
@@ -184,7 +184,7 @@ Add refresh token generation, storage, rotation, and revocation endpoints.
 
 ---
 
-## 9. Add Spring Boot Actuator health checks and observability basics
+## 9. Add actuator health checks and observability basics
 
 **Labels:** `operations`, `enhancement`, `monitoring`
 
@@ -194,11 +194,11 @@ The API does not expose standardized health or readiness endpoints for deploymen
 
 ### Proposed solution
 
-Add Spring Boot Actuator and configure health endpoints, basic application info, and safe metrics exposure.
+Add actuator endpoints and configure health endpoints, basic application info, and safe metrics exposure.
 
 ### Acceptance criteria
 
-- [ ] Add the Spring Boot Actuator dependency.
+- [ ] Add the actuator endpoints.
 - [ ] Expose health and info endpoints.
 - [ ] Configure liveness and readiness probes.
 - [ ] Ensure sensitive actuator endpoints are not publicly exposed.
